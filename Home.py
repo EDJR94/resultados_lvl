@@ -43,8 +43,8 @@ df3 = df2.copy()
 #===============================================Streamlit Sidebar========================================
 
 
-valor_inicial = st.sidebar.text_input("Data Inicial - YYYY-MM-DD")
-valor_final = st.sidebar.text_input("Data Final - YYYY-MM-DD")
+valor_inicial = st.sidebar.text_input("Data Inicial - YYYY-MM-DD", value =df3['data'].min().date())
+valor_final = st.sidebar.text_input("Data Final - YYYY-MM-DD", value =df3['data'].max().date())
 
 #valor_minimo = df3['data'].min().date()
 #valor_maximo = df3['data'].max().date()
