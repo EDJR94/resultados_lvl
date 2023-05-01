@@ -4,11 +4,8 @@ import inflection
 import seaborn as sns
 import plotly.express as px
 import streamlit as st
-import matplotlib.pyplot as plt
 
 st.set_page_config(layout='wide')
-
-
 
 #======================================Loading Data========================#
 path = 'data/order_export_2023-04-17.csv'
@@ -40,26 +37,7 @@ df2['valor_por_acao'] = df2['liquido']/(df2['preco']*df2['quantidade'])
 
 #======================================#Visão Geral========================#
 df3 = df2.copy()
-
-#===============================================Streamlit Sidebar========================================
-
-
-#valor_inicial = st.sidebar.text_input("Data Inicial - YYYY-MM-DD", value =df3['data'].min().date())
-#valor_final = st.sidebar.text_input("Data Final - YYYY-MM-DD", value =df3['data'].max().date())
-
-valor_minimo = df3['data'].min().date()
-valor_maximo = df3['data'].max().date()
-
-valor_inicial = st.sidebar.slider("Selecione a Data Inicial", valor_minimo, valor_maximo, valor_minimo )
-valor_final = st.sidebar.slider("Selecione a Data Final",valor_minimo, valor_maximo, valor_maximo)
-
-
-
-#valores_iniciais = (valor_minimo, valor_maximo)
-
-#valores_selecionados = st.sidebar.slider("Selecione a data",valor_minimo, valor_maximo, valores_iniciais)
-df3_mes = df3.loc[(df3['data'] >= pd.to_datetime(valor_inicial)) & (df3['data'] <= pd.to_datetime(valor_final))]
-df3_mes.loc[:, 'codigo'] = df3_mes['codigo'].apply(lambda x: x[:3] if x.startswith(('WDO','WIN','DOL','IND','CCM')) else x)
+df3_mes = df_mes_selecionado(df3,4) 
 
 #==========================###1.1 Abertura Futuros=================================================
 
@@ -69,6 +47,7 @@ df3_hora_abertura_futuros = df3_mes.loc[(df3_mes['hora'] >= '09:00:00') & (df3_m
 ####1.1.1 Total Sala
 
 df3_abertura_futuros_total = df3_hora_abertura_futuros.loc[:,['liquido','codigo']].groupby(['codigo']).sum().reset_index()
+px.bar(df3_abertura_futuros_total,x='codigo',y='liquido', labels={'codigo':'Ativo','liquido':'Resultado Líquido'})
 total_sala_ab_futuros = round(df3_hora_abertura_futuros['liquido'].sum(),2)
 
 
@@ -119,6 +98,7 @@ df3_combinado_ab_futuros['% vencedoras'] = round(df3_combinado_ab_futuros['qtd_m
 #Todos os trades após 09:05:00 e 17:00:00
 hora_tarde_futuros = (df3_mes['hora'] > '09:05:00') & (df3_mes['hora'] <= '17:00:00')
 ativo_futuros = df3_mes['codigo'].str.startswith(('WDO','WIN','DOL','IND')) 
+
 
 ####1.2.1 Total Sala
 
@@ -327,17 +307,11 @@ df3_combinado_xsalada.reindex(columns=nova_ordem_colunas)
 #Tabela Final
 df3_combinado_xsalada['% vencedoras'] = round(df3_combinado_xsalada['qtd_melhores']/(df3_combinado_xsalada['qtd_melhores'] + df3_combinado_xsalada['qtd_piores']),2) 
 
-#==========================Milho=================================================
 
-df3_milho = df3_mes.loc[df3_mes['codigo'].str.startswith(('CCM')),:]
-df3_milho_total = round(df3_milho['liquido'].sum(),2)
-
-#==========================Gráficos Visão Geral=================================================
-
-# Gráfico por estratégia
-df_todas_estr = ([total_sala_ab_futuros, total_sala_futuros_tarde, total_sala_ab_acoes, total_leilao, df3_milho_total, total_x_salada])
+####1.5.7 Gráfico por estratégia
+df_todas_estr = ([total_sala_ab_futuros, total_sala_futuros_tarde, total_sala_ab_acoes, total_leilao, total_x_salada])
 df_todas_estr = pd.DataFrame(df_todas_estr).reset_index()
-df_todas_estr['estrategia'] = ['Abertura Futuros','Futuros Tarde', 'Abertura Ações', 'Leilão','Milho', 'X salada']
+df_todas_estr['estrategia'] = ['Abertura Futuros','Futuros Tarde', 'Abertura Ações', 'Leilão', 'X salada']
 df_todas_estr = df_todas_estr.rename(columns={0:'resultado'})
 px.bar(df_todas_estr, x='estrategia', y='resultado', color='estrategia')
 
@@ -346,17 +320,33 @@ df_total_dia = df3_mes.loc[:,['data','liquido']].groupby('data').sum().reset_ind
 df_total_dia['acumulado'] = df_total_dia['liquido'].cumsum()
 px.line(df_total_dia, x='data', y='acumulado')
 
+#===============================================Streamlit Sidebar========================================
+
+valor_minimo = df3['data'].min().date()
+valor_maximo = df3['data'].max().date()
+valores_iniciais = (valor_minimo, valor_maximo)
+
+valores_selecionados = st.sidebar.slider("Selecione a data",valor_minimo, valor_maximo, valores_iniciais)
 
 #==============================================StreamLit=====================================================
 
 with st.container():
-    st.markdown("# Resultado por Estratégia")
-    fig = px.bar(df_todas_estr, x='estrategia', y='resultado', color='estrategia', labels={'estrategia': '', 'resultado': 'Resultado'})
-    st.plotly_chart(fig, use_container_width=True)
+    st.markdown("# Resultado por estratégia")
+    st.plotly_chart(px.bar(df_todas_estr, x='estrategia', y='resultado', color='estrategia'))
     st.markdown("""___""")
     
-with st.container():
-    st.markdown("# Acumulado Total")
-    fig = px.line(df_total_dia, x='data', y='acumulado', labels={'data': '', 'acumulado': 'Resultado'})
-    st.plotly_chart(fig, use_container_width=True)
+    st.markdown("# Futuros Tarde")
+    st.dataframe(df3_combinado_futuros_tarde)
+    st.markdown("""___""")
+    
+    st.markdown("# Abertura Ações")
+    st.dataframe(df3_combinado_ab_acoes)
+    st.markdown("""___""")
+    
+    st.markdown("# Leilão Fechamento")
+    st.dataframe(df3_combinado_leilao)
+    st.markdown("""___""")
+    
+    st.markdown("# X Salada")
+    st.dataframe(df3_combinado_xsalada)
     st.markdown("""___""")

@@ -64,7 +64,7 @@ df3_mes.loc[:, 'codigo'] = df3_mes['codigo'].apply(lambda x: x[:3] if x.startswi
 #==========================###1.1 Abertura Futuros=================================================
 
 #Todos os trades entre 09:00:00 e 09:10:00 dentro do mês
-df3_hora_abertura_futuros = df3_mes.loc[(df3_mes['hora'] >= '09:00:00') & (df3_mes['hora'] <= '09:05:00'),:]
+df3_hora_abertura_futuros = df3_mes.loc[(df3_mes['hora'] >= '09:00:00') & (df3_mes['hora'] <= '09:05:00') & ~df3_mes['codigo'].str.startswith('CCM'),:]
 
 ####1.1.1 Total Sala
 
@@ -219,7 +219,8 @@ df3_combinado2 = pd.merge(df3_combinado1,df3_valor_p_ab_acao, on='codigo')
 df3_combinado_ab_acoes = pd.merge(df3_combinado2,df3_tempo_p_op_ab_acoes, on='codigo' )
 nova_ordem_colunas = ['codigo','liquido','media_melhores','media_piores','melhor','pior','valor_por_acao','qtd_melhores','qtd_piores','duracao']
 df3_combinado_ab_acoes.reindex(columns=nova_ordem_colunas)
-df3_combinado_ab_acoes['% vencedoras'] = round(df3_combinado_ab_acoes['qtd_melhores']/(df3_combinado_ab_acoes['qtd_melhores'] + df3_combinado_ab_acoes['qtd_piores']),2) 
+df3_combinado_ab_acoes['% vencedoras'] = round(df3_combinado_ab_acoes['qtd_melhores']/(df3_combinado_ab_acoes['qtd_melhores'] + df3_combinado_ab_acoes['qtd_piores']),2)
+
 
 
 #==========================###1.1 Leilao=================================================
@@ -350,13 +351,19 @@ px.line(df_total_dia, x='data', y='acumulado')
 #==============================================StreamLit=====================================================
 
 with st.container():
-    st.markdown("# Resultado por Estratégia")
-    fig = px.bar(df_todas_estr, x='estrategia', y='resultado', color='estrategia', labels={'estrategia': '', 'resultado': 'Resultado'})
-    st.plotly_chart(fig, use_container_width=True)
+    st.subheader(f"Resultado Total: R$ {total_leilao:,.2f}")
+    st.markdown("# Top 10 Melhores Ações")
+    df3_combinado_leilao.sort_values(by='liquido', ascending=False)
+    st.dataframe(df3_combinado_leilao.head(10), use_container_width=True)
     st.markdown("""___""")
     
 with st.container():
-    st.markdown("# Acumulado Total")
-    fig = px.line(df_total_dia, x='data', y='acumulado', labels={'data': '', 'acumulado': 'Resultado'})
-    st.plotly_chart(fig, use_container_width=True)
+    st.markdown("# Top 10 Piores Ações")
+    df3_combinado_leilao.sort_values(by='liquido', ascending=False)
+    st.dataframe(df3_combinado_leilao.tail(10), use_container_width=True)
+    st.markdown("""___""")
+    
+with st.container():
+    st.markdown("# Geral")
+    st.dataframe(df3_combinado_leilao, use_container_width=True)
     st.markdown("""___""")

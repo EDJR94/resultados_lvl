@@ -64,7 +64,7 @@ df3_mes.loc[:, 'codigo'] = df3_mes['codigo'].apply(lambda x: x[:3] if x.startswi
 #==========================###1.1 Abertura Futuros=================================================
 
 #Todos os trades entre 09:00:00 e 09:10:00 dentro do mês
-df3_hora_abertura_futuros = df3_mes.loc[(df3_mes['hora'] >= '09:00:00') & (df3_mes['hora'] <= '09:05:00'),:]
+df3_hora_abertura_futuros = df3_mes.loc[(df3_mes['hora'] >= '09:00:00') & (df3_mes['hora'] <= '09:05:00') & ~df3_mes['codigo'].str.startswith('CCM'),:]
 
 ####1.1.1 Total Sala
 
@@ -125,6 +125,7 @@ ativo_futuros = df3_mes['codigo'].str.startswith(('WDO','WIN','DOL','IND'))
 df3_futuros_tarde = df3_mes.loc[(hora_tarde_futuros) & (ativo_futuros),['liquido','codigo']].groupby(['codigo']).sum().reset_index()
 df3_futuros_tarde['liquido'] = round(df3_futuros_tarde['liquido'],2)
 total_sala_futuros_tarde = df3_futuros_tarde['liquido'].sum()
+px.bar(df3_futuros_tarde, x='codigo', y='liquido', color='codigo', labels={'codigo': '', 'liquido': 'Resultado'})
 
 
 ####1.2.2 Total por Operador
@@ -350,13 +351,13 @@ px.line(df_total_dia, x='data', y='acumulado')
 #==============================================StreamLit=====================================================
 
 with st.container():
-    st.markdown("# Resultado por Estratégia")
-    fig = px.bar(df_todas_estr, x='estrategia', y='resultado', color='estrategia', labels={'estrategia': '', 'resultado': 'Resultado'})
+    st.subheader(f"Resultado Total: R$ {total_sala_futuros_tarde:,.2f}")
+    st.markdown("# Resultado por Ativo")
+    fig = px.bar(df3_futuros_tarde, x='codigo', y='liquido', color='codigo', labels={'codigo': '', 'liquido': 'Resultado'})
     st.plotly_chart(fig, use_container_width=True)
     st.markdown("""___""")
     
 with st.container():
-    st.markdown("# Acumulado Total")
-    fig = px.line(df_total_dia, x='data', y='acumulado', labels={'data': '', 'acumulado': 'Resultado'})
-    st.plotly_chart(fig, use_container_width=True)
+    st.markdown("# Estatísticas")
+    st.dataframe(df3_combinado_futuros_tarde)
     st.markdown("""___""")
